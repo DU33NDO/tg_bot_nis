@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id   Int     @id @unique
+  email     String  @unique
+  chat_id   Int     @unique
+  role      Int
+  school_id Int?
+  School    School? @relation(fields: [school_id], references: [school_id])
+
+  Task      Task[]  @relation("UserTask")
+  HomeworkAssignments HomeworkOnUsers[]  // Relation with junction table
+}
+
+model School {
+  school_id   Int      @id @unique @default(autoincrement())
+  city_id     Int?
+  school_name String
+  City        City?    @relation(fields: [city_id], references: [city_id])
+
+  User        User[]
+  Author      Author[]
+}
+
+model City {
+  city_id   Int     @id @default(autoincrement())
+  city_name String  @unique
+  School    School[]
+}
+
+model Grade {
+  grade_id Int    @id @unique
+  Hierarchy Hierarchy[]
+}
+
+model Subject {
+  subject_id   Int    @id @unique
+  subject_name String @unique
+  Hierarchy    Hierarchy[]
+}
+
+model Topic {
+  topic_id   Int    @id @unique
+  topic_name String
+  Hierarchy  Hierarchy[]
+}
+
+model Subtopic {
+  subtopic_id   Int    @id @unique
+  subtopic_name String
+  Hierarchy     Hierarchy[]
+}
+
+model Hierarchy {
+  hierarchy_id Int     @id @unique @default(autoincrement())
+  grades_id    Int
+  subject_id   Int
+  topic_id     Int
+  subtopic_id  Int
+
+  Grade        Grade    @relation(fields: [grades_id], references: [grade_id])
+  Subject      Subject  @relation(fields: [subject_id], references: [subject_id])
+  Topic        Topic    @relation(fields: [topic_id], references: [topic_id])
+  Subtopic     Subtopic @relation(fields: [subtopic_id], references: [subtopic_id])
+
+  Task         Task[]
+  
+  @@unique([grades_id, subject_id, topic_id, subtopic_id])
+}
+
+model Task {
+  task_id              Int      @id @unique @default(autoincrement())
+  hierarchy_id         Int
+  author_id            Int
+  user_id              Int?
+  task_create_date     DateTime
+  task_approve_status  Boolean
+  task_approve_date    DateTime?
+  task_update_date     DateTime?
+  task_title           String
+  task_text            String
+
+  Hierarchy            Hierarchy @relation(fields: [hierarchy_id], references: [hierarchy_id])
+  Author               Author    @relation(fields: [author_id], references: [author_id])
+  User                 User?      @relation("UserTask", fields: [user_id], references: [user_id])
+
+  Answer               Answer[]
+  HomeworkAssignments  HomeworkOnTasks[]  // Relation with junction table
+}
+
+model Author {
+  author_id     Int      @id @unique @default(autoincrement())
+  author_surname String
+  author_name   String
+  school_id     Int
+
+  School        School   @relation(fields: [school_id], references: [school_id])
+  Task          Task[]
+}
+
+model Answer {
+  task_id     Int
+  task_answer String
+  task_solution String
+
+  Task        Task @relation(fields: [task_id], references: [task_id])
+
+  @@id([task_id, task_answer])
+}
+
+model Homework {
+  hw_id          Int     @id @unique @default(autoincrement())
+  hw_create_date DateTime
+  due_date       DateTime
+
+  HomeworkAssignments HomeworkOnUsers[]
+  HomeworkTasks       HomeworkOnTasks[]
+}
+
+model HomeworkOnUsers {
+  homework_id Int
+  user_id     Int
+
+  Homework Homework @relation(fields: [homework_id], references: [hw_id])
+  User     User     @relation(fields: [user_id], references: [user_id])
+
+  @@id([homework_id, user_id])
+}
+
+model HomeworkOnTasks {
+  homework_id Int
+  task_id     Int
+
+  Homework Homework @relation(fields: [homework_id], references: [hw_id])
+  Task     Task     @relation(fields: [task_id], references: [task_id])
+
+  @@id([homework_id, task_id])
+}
